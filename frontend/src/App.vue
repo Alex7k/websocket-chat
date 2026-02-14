@@ -218,10 +218,28 @@ function onComposerKeyDown(event: KeyboardEvent) {
 }
 
 function formatTimestamp(timestamp: string) {
-  return new Date(timestamp).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const messageDate = new Date(timestamp)
+  const now = new Date()
+  const isToday =
+    messageDate.getFullYear() === now.getFullYear() &&
+    messageDate.getMonth() === now.getMonth() &&
+    messageDate.getDate() === now.getDate()
+
+  const year = messageDate.getFullYear()
+  const month = String(messageDate.getMonth() + 1).padStart(2, '0')
+  const day = String(messageDate.getDate()).padStart(2, '0')
+
+  const rawHours = messageDate.getHours()
+  const minutes = String(messageDate.getMinutes()).padStart(2, '0')
+  const period = rawHours >= 12 ? 'PM' : 'AM'
+  const hour12 = rawHours % 12 === 0 ? 12 : rawHours % 12
+  const hours = String(hour12).padStart(2, '0')
+
+  if (isToday) {
+    return `${hours}:${minutes} ${period}`
+  }
+
+  return `${year}-${month}-${day} ${hours}:${minutes} ${period}`
 }
 
 onMounted(async () => {
