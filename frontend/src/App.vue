@@ -257,12 +257,7 @@ onUnmounted(() => {
       <div class="topbar-right">
         <label class="identity-field">
           <span>Display Name</span>
-          <input
-            id="displayName"
-            v-model="displayName"
-            maxlength="64"
-            @change="saveDisplayName"
-          />
+          <input id="displayName" v-model="displayName" maxlength="64" @change="saveDisplayName" />
         </label>
         <p class="username-tag">@{{ username }}</p>
         <p class="status" :class="`status-${connectionState}`">{{ statusText }}</p>
