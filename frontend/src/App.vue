@@ -74,7 +74,10 @@ function avatarStyle(rawUsername: string) {
   for (let i = 0; i < rawUsername.length; i += 1) {
     hash = (hash * 31 + rawUsername.charCodeAt(i)) % 360
   }
-  return { background: `hsl(${hash} 70% 46%)` }
+  // Stay inside the red band of the site palette; vary tone, not hue.
+  const hue = (hash % 16) - 6
+  const lightness = 20 + (hash % 5) * 7
+  return { background: `hsl(${hue} 72% ${lightness}%)` }
 }
 
 async function scrollToBottom() {
@@ -253,7 +256,7 @@ onUnmounted(() => {
 <template>
   <main class="chat-app">
     <header class="topbar">
-      <h1>Alex7k Anonymous Chat</h1>
+      <h1>Alex7k Chatroom</h1>
       <div class="topbar-right">
         <label class="identity-field">
           <span>Display Name</span>
@@ -301,18 +304,42 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+:global(:root) {
+  color-scheme: dark;
+
+  --bg: #000000;
+  --text: #ff2d2d;
+  --muted: #d14545;
+  --rule: #5e1414;
+  --surface: #150303;
+  --surface-hover: #240606;
+  --link: #ff6b6b;
+  --link-hover: #ffa5a5;
+  --error: #ff3b3b;
+  --ok: #ff9d9d;
+  --message: #ffffff;
+}
+
 :global(*) {
   box-sizing: border-box;
+  /* Sharp corners everywhere, matching alex7k.com. */
+  border-radius: 0;
+}
+
+:global(html) {
+  background: var(--bg);
 }
 
 :global(body) {
   margin: 0;
   min-height: 100vh;
-  font-family: Inter, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: #dde5f8;
-  background:
-    radial-gradient(1300px 800px at 10% -20%, #24355c 0%, transparent 55%),
-    radial-gradient(1200px 760px at 100% -10%, #412460 0%, transparent 50%), #0f1420;
+  font-family:
+    ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text);
+  /* No background here: the backdrop sits at z-index -1, behind body's own
+     background but in front of html's, so painting body would hide it. */
 }
 
 .chat-app {
@@ -320,17 +347,14 @@ onUnmounted(() => {
   grid-template-rows: auto 1fr auto;
   height: 100vh;
   width: 100vw;
-  padding: 0.85rem;
-  gap: 0.8rem;
+  padding: 16px;
+  gap: 16px;
   overflow: hidden;
 }
 
 .topbar {
-  border: 1px solid #25324a;
-  border-radius: 14px;
-  background: rgba(16, 23, 38, 0.78);
-  backdrop-filter: blur(10px);
-  padding: 0.85rem 0.95rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -339,115 +363,142 @@ onUnmounted(() => {
 
 .topbar h1 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 20px;
   font-weight: 700;
-  color: #f1f5ff;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.topbar h1::before {
+  content: '~/';
+  color: var(--muted);
+  font-weight: 400;
 }
 
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
 .identity-field {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 8px;
 }
 
 .identity-field span {
-  font-size: 0.76rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #9aa8c7;
+  font-size: 13px;
+  text-transform: lowercase;
+  color: var(--muted);
+}
+
+.identity-field span::after {
+  content: ':';
 }
 
 .identity-field input {
   width: 14rem;
-  border: 1px solid #31415f;
-  border-radius: 10px;
-  background: #111b2f;
-  color: #f0f4ff;
-  padding: 0.5rem 0.6rem;
-  transition:
-    border-color 0.16s ease,
-    box-shadow 0.16s ease;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  padding: 5px 8px;
 }
 
 .identity-field input:focus {
   outline: none;
-  border-color: #5b7fff;
-  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2);
+  border-color: var(--text);
 }
 
 .username-tag {
   margin: 0;
-  border: 1px solid #33415f;
+  /* Pills, per request: these two keep the rounded shape from the old design. */
+  border: 1px solid var(--rule);
   border-radius: 999px;
-  background: #111b2f;
-  color: #9fb0d3;
-  font-size: 0.76rem;
-  padding: 0.32rem 0.62rem;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  padding: 5px 12px;
 }
 
 .status {
   margin: 0;
-  font-size: 0.78rem;
-  text-transform: capitalize;
-  border: 1px solid #33415f;
+  font-size: 13px;
+  border: 1px solid var(--rule);
   border-radius: 999px;
-  padding: 0.3rem 0.65rem;
-  background: #111b2f;
+  background: var(--surface);
+  padding: 5px 12px;
+}
+
+/* Brackets track the state colour so they read as part of the label. */
+.status::before {
+  content: '[';
+  color: currentColor;
+  opacity: 0.65;
+}
+
+.status::after {
+  content: ']';
+  color: currentColor;
+  opacity: 0.65;
 }
 
 .status-connected {
-  color: #62e694;
+  color: var(--ok);
 }
 
 .status-connecting,
 .status-disconnected {
-  color: #f4bf61;
+  color: var(--error);
 }
 
 .messages {
-  border: 1px solid #25324a;
-  border-radius: 14px;
-  background: rgba(15, 22, 37, 0.72);
-  backdrop-filter: blur(9px);
+  border: 1px solid var(--rule);
+  /* Backdrop is bound to this box, so `contain` rescales it with the panel
+     instead of letting it clip past the edges. Layers, front to back:
+     red tint, black dimmer (how strongly the art reads), artwork. */
+  background:
+    linear-gradient(rgba(21, 3, 3, 0.3), rgba(21, 3, 3, 0.3)),
+    linear-gradient(rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.78)),
+    url('/skynet.png') center / contain no-repeat;
   min-height: 0;
   overflow-y: auto;
-  padding: 0.75rem 0.95rem;
+  padding: 12px;
   scroll-behavior: smooth;
+  scrollbar-color: var(--rule) transparent;
 }
 
 .empty {
-  margin: 0.45rem 0;
-  color: #9ba8c5;
+  margin: 8px 0;
+  color: var(--muted);
+}
+
+.empty::before {
+  content: '- ';
+  color: var(--rule);
 }
 
 .message {
   display: grid;
-  grid-template-columns: 2.5rem 1fr;
-  gap: 0.7rem;
-  border-radius: 10px;
-  padding: 0.55rem 0.45rem;
-  transition: background 0.16s ease;
+  grid-template-columns: 2.25rem 1fr;
+  gap: 10px;
+  padding: 6px 8px;
 }
 
 .message:hover {
-  background: #1a2741;
+  background: var(--surface-hover);
 }
 
 .avatar {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #4d75ff, #39a2ff);
-  color: #fff;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--rule);
+  color: #ffdada;
   display: grid;
   place-items: center;
-  font-size: 0.72rem;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.03em;
 }
@@ -459,64 +510,59 @@ onUnmounted(() => {
 .meta {
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
-  margin: 0 0 0.2rem 0;
-  font-size: 0.78rem;
-  color: #9eabc7;
+  gap: 8px;
+  margin: 0 0 2px 0;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .meta strong {
-  color: #f3f7ff;
-  font-size: 0.9rem;
-  font-weight: 600;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .meta-username {
-  color: #8e9dbc;
+  color: var(--muted);
 }
 
 .text {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 1.45;
-  color: #d9e1f4;
+  line-height: 1.5;
+  color: var(--message);
 }
 
 .composer {
-  border: 1px solid #25324a;
-  border-radius: 14px;
-  background: rgba(16, 23, 38, 0.78);
-  backdrop-filter: blur(10px);
-  padding: 0.75rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 12px;
   display: grid;
-  gap: 0.52rem;
+  gap: 8px;
 }
 
 .composer textarea {
   width: 100%;
   resize: vertical;
-  min-height: 2.9rem;
+  min-height: 3rem;
   max-height: 12rem;
-  border: 1px solid #31415f;
-  border-radius: 10px;
-  background: #101a2e;
-  color: #f0f4ff;
-  padding: 0.7rem 0.78rem;
-  line-height: 1.4;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  line-height: 1.5;
 }
 
 .composer textarea::placeholder {
-  color: #90a1c2;
+  color: var(--muted);
+  opacity: 1;
 }
 
 .composer textarea:focus {
   outline: none;
-  border-color: #5b7fff;
-  background: #111e35;
+  border-color: var(--text);
 }
 
 .composer-row {
@@ -527,56 +573,58 @@ onUnmounted(() => {
 
 .count {
   margin: 0;
-  color: #95a6c8;
-  font-size: 0.77rem;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .composer button {
-  border: 1px solid #3d60cf;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #446dff, #5b7fff);
-  color: #f8fbff;
-  padding: 0.52rem 0.95rem;
-  font-size: 0.84rem;
-  font-weight: 600;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 7px 18px;
   cursor: pointer;
   transition:
-    transform 0.15s ease,
-    filter 0.15s ease,
-    background 0.15s ease;
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .composer button:hover:enabled {
-  transform: translateY(-1px);
-  filter: brightness(1.07);
+  border-color: var(--text);
+  background: var(--surface-hover);
+  color: var(--link-hover);
 }
 
 .composer button:disabled {
-  border-color: #364055;
-  background: #364055;
-  color: #b6c1d6;
+  border-color: var(--rule);
+  color: var(--muted);
   cursor: not-allowed;
 }
 
 .error {
   margin: 0;
-  color: #ff8798;
-  font-size: 0.8rem;
+  color: var(--error);
+  font-size: 13px;
 }
 
 @media (max-width: 860px) {
   .chat-app {
-    padding: 0.6rem;
-    gap: 0.62rem;
+    padding: 12px;
+    gap: 12px;
   }
 
   .topbar {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
 
   .topbar-right {
     justify-content: space-between;
+    flex-wrap: wrap;
   }
 
   .identity-field {
